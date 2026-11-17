@@ -1,7 +1,24 @@
+import json
+import sqlite3
 import tempfile
+import unicodedata
 import unittest
 from pathlib import Path
-from app import init_db, search
+from app import SEED, init_db, search
+
+
+def fullwidth(text):
+    """ABC-1 -> ＡＢＣ－１ (한글 키보드 전각 모드 입력 흉내)"""
+    return ''.join(chr(ord(c) + 0xFEE0) if '!' <= c <= '~' else c for c in text)
+
+
+def variants(term):
+    """한 단어로 사람들이 칠 법한 표기를 자동 생성. 특정 단어를 가정하지 않음."""
+    joined = term.replace(' ', '')
+    return {term, term.upper(), term.lower(), term.swapcase(),
+            term.replace(' ', '_'), term.replace(' ', '-'), joined,
+            '_'.join(joined), '-'.join(joined), ' '.join(joined),   # 글자마다 구분자
+            fullwidth(term), unicodedata.normalize('NFD', term)}     # 전각, 분해형 한글
 
 class SearchTest(unittest.TestCase):
     def setUp(self):
@@ -50,6 +67,36 @@ class SearchTest(unittest.TestCase):
                 with self.subTest(q=q):
                     self.assertEqual(self.ids(q),[doc])
         self.assertEqual(self.ids('후로젝-트'),['MES-001','MES-011'])
+    def test_every_stored_term_all_variants(self):
+        # DB 에 있는 모든 문서의 모든 단어(제목, 문서ID, 별칭)를 자동으로 변형해서 검색
+        # -> 단어별 하드코딩 없이 같은 규칙이 적용됨을 확인
+        count=0
+        for doc_id,title,_,_,aliases in SEED:
+            for term in [title,doc_id]+aliases:
+                for q in variants(term):
+                    with self.subTest(term=term,q=q):
+                        hit={r['id']:r['score'] for r in search(q,path=self.db)['results']}
+                        self.assertEqual(hit.get(doc_id),100)
+                        count+=1
+        self.assertGreater(count,500)
+    def test_new_word_needs_no_code_change(self):
+        # 소스코드에 없는 새 문서를 DB 에만 추가해도 같은 규칙으로 검색됨
+        with sqlite3.connect(self.db) as con:
+            con.execute('INSERT INTO documents VALUES (?,?,?,?,?)',('NEW-001','용융아연도금 강판','품질',
+                        '도금 부착량 Z275 관리',json.dumps(['Galvanized Steel','GI-275','용융아연도금'])))
+        con.close()
+        for q in ['galvanized_steel','GALVANIZED-STEEL','Galvanized  Steel','gi 275','gi_275','ＧＩ－２７５',
+                  'z_275','용융_아연_도금','용융-아연도금','galvanised steel']:   # 마지막은 오타 보정
+            with self.subTest(q=q):
+                self.assertEqual(self.ids(q),['NEW-001'])
+        self.assertEqual(self.ids('GI-276'),[])   # 숫자 다르면 다른 코드
+    def test_code_detection_is_generic(self):
+        from app import is_code
+        for t in ['SPCC','SPCD','MES','RAL9006','MES-001','GI-275','SGCC','ＳＰＣＣ']:
+            self.assertTrue(is_code(t),t)
+        for t in ['project','cold rolling','Coil','프로젝트','Galvanized Steel','1234']:
+            self.assertFalse(is_code(t),t)
+        self.assertEqual(self.ids('SPCE'),[])   # 코드라서 오타 보정 안 함
     def test_code_no_false_positive(self):
         # 숫자 한 자리 차이는 다른 색 -> 오타 보정으로 섞이면 안 됨
         self.assertEqual(self.ids('RAL-9016'),['MES-014'])

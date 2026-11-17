@@ -127,16 +127,26 @@ SCORE_EXACT = 100    # 정규화 후 완전히 같음
 SCORE_PARTIAL = 85   # 검색어가 단어 안에 포함됨 (프로젝 -> 프로젝트)
 SCORE_BODY = 75      # 본문에 포함됨
 SCORE_FUZZY = 70     # 오타 보정. 편집 1회마다 8점 감점 -> 62, 54
-NO_FUZZY_TERMS = ('SPCC', 'SPCD')  # 강종 코드: 한 글자 차이도 다른 강종이므로 오타 보정 금지
+
+
+def is_code(term):
+    """대문자 영문(+숫자·구분자)으로만 쓴 단어를 '코드'로 판단합니다. 특정 단어 목록 없이 모양으로만 판단.
+
+    코드 O : SPCC, SPCD, MES, RAL9006, MES-001, GI-275, SGCC   (원문에 영문 소문자가 없음)
+    코드 X : project, cold rolling, Coil, 프로젝트, 화이트 알루미늄
+    코드는 한 글자만 달라도 다른 대상(SPCC 와 SPCE 는 다른 강종)이므로 오타 보정을 하지 않습니다.
+    """
+    letters = [c for c in unicodedata.normalize('NFKC', term) if c.isalpha()]
+    return bool(letters) and all('A' <= c <= 'Z' for c in letters)
 
 
 def fuzzy_allowed(q, n, term):
-    """오타 보정을 시도해도 안전한 경우인지 판단합니다.
+    """오타 보정을 시도해도 안전한 경우인지 판단합니다. 모든 단어에 같은 규칙을 적용합니다.
 
-    숫자가 섞인 값(RAL9006, MES-001, 코일번호)은 숫자 한 자리만 달라도 전혀 다른 대상이므로
-    오타 보정을 하지 않습니다. RAL9007 을 쳤을 때 RAL9006 이 나오면 오검색입니다.
+    - 코드(대문자 약어)는 제외: SPCE 를 쳤을 때 SPCC 가 나오면 오검색
+    - 숫자가 섞인 값(RAL9006, MES-001, 코일번호)은 제외: RAL9007 을 쳤을 때 RAL9006 이 나오면 오검색
     """
-    return (term not in NO_FUZZY_TERMS
+    return (not is_code(term)
             and 3 <= len(q) <= 30                       # 너무 짧으면 아무 단어나 걸림
             and not any(ch.isdigit() for ch in q + n)   # 숫자 포함 값 제외
             and abs(len(q) - len(n)) <= 2)              # 길이가 많이 다르면 계산할 필요 없음

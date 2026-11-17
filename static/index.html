@@ -1,8 +1,10 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MES 검색 실험실</title><link rel="stylesheet" href="/style.css"></head><body>
+<!-- index.html 을 더블클릭해서 열면(file://) style.css, app.js 를 못 불러와 화면이 깨짐 -> 안내만 표시 -->
+<div id="file-warning" hidden style="max-width:640px;margin:48px auto;padding:24px 28px;border:2px solid #b54a3c;border-radius:12px;background:#fff6f4;color:#4a1d16;font:15px/1.9 'Malgun Gothic',sans-serif"><b style="font-size:19px">이 파일은 직접 열면 동작하지 않습니다.</b><br><br>프로젝트 폴더의 <b>실행.bat</b> 을 더블클릭하세요.<br>서버가 켜지고 브라우저에서 검색 화면이 자동으로 열립니다.<br><br><span style="color:#7a4a42">또는 터미널에서 <code>python app.py</code> 실행 후 <b>http://127.0.0.1:8000</b> 으로 접속하세요.</span></div>
 <header><a href="/" class="brand"><span class="logo">M</span> MES <b>SEARCH LAB</b></a><span class="local"><i></i> LOCAL DATABASE</span></header>
 <main><div class="eyebrow">COLD ROLLING · MES REBUILD</div><h1>다르게 입력해도,<br><em>같은 정보를 찾도록.</em></h1><p class="intro">띄어쓰기부터 영문 표현, 작은 오타까지.<br>냉연 공장 MES 데이터를 검색하고 결과를 비교해 보세요.</p>
 <form id="search-form"><label class="sr" for="query">검색어</label><div class="searchbox"><span aria-hidden="true">⌕</span><input id="query" maxlength="100" placeholder="프로젝트, coil, RAL_9006…" autocomplete="off"><button type="submit">검색 <span>↗</span></button></div>
 <div class="options"><label>검색 범위 <select id="category"><option value="">전체 업무</option><option>공통</option><option>생산</option><option>품질</option><option>설비</option><option>물류</option></select></label><label><input id="fuzzy" type="checkbox" checked> 오타 허용</label></div></form>
 <div class="examples"><span>이렇게 검색해 보세요</span><div id="examples"></div></div>
 <section class="workspace"><div class="result-head"><h2>검색 결과 <span id="count">0</span></h2><span id="timing"></span></div><div class="trace" id="trace"></div><div id="results" aria-live="polite"></div></section>
-<footer><span>SQLite · 합성 MES 샘플 14건</span><span>실제 공장 데이터는 포함하지 않습니다.</span></footer></main><script src="/app.js"></script></body></html>
+<footer><span>SQLite · 합성 MES 샘플 14건</span><span>실제 공장 데이터는 포함하지 않습니다.</span></footer></main><script>if(location.protocol==='file:'){document.getElementById('file-warning').hidden=false;document.querySelectorAll('header,main').forEach(function(e){e.hidden=true;});}</script><script src="/app.js"></script></body></html>

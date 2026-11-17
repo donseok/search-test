@@ -27,6 +27,12 @@ class HTTPTest(unittest.TestCase):
             with urlopen(self.base+path) as r:
                 self.assertIn(mime,r.headers['Content-Type'])
                 self.assertTrue(r.read())
+    def test_file_open_warning(self):
+        # 서버로 열면 안내 문구는 hidden, file:// 로 열 때만 인라인 스크립트가 표시
+        with urlopen(self.base+'/') as r:
+            html=r.read().decode()
+        self.assertIn('id="file-warning" hidden',html)
+        self.assertIn("location.protocol==='file:'",html)
     def test_private_paths(self):
         for path in ['/data/mes.sqlite3','/../app.py','/app.py']:
             with self.assertRaises(HTTPError) as ctx: urlopen(self.base+path)

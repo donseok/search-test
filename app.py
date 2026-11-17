@@ -234,8 +234,54 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-if __name__ == '__main__':
-    init_db()
+class Server(ThreadingHTTPServer):
+    # Windows 에서 SO_REUSEADDR 를 켜면 이미 사용 중인 포트에도 바인딩되어 두 서버가 겹칠 수 있으므로 끔
+    allow_reuse_address = os.name != 'nt'
+
+
+def already_running(port):
+    """해당 포트에서 이 검색 서버가 이미 동작 중인지 확인합니다 (실행.bat 을 두 번 눌렀을 때 대비)."""
+    from urllib.request import urlopen
+    try:
+        with urlopen(f'http://127.0.0.1:{port}/api/search?q=', timeout=1) as r:
+            return 'results' in json.load(r)
+    except Exception:
+        return False
+
+
+def main(argv):
+    """실행: python app.py [--open]
+    --open : 서버가 준비되면 기본 브라우저로 화면을 엽니다 (실행.bat 이 사용).
+    """
+    import webbrowser
+    open_browser = '--open' in argv
     port = int(os.environ.get('PORT', '8000'))
-    print(f'MES Search Lab: http://127.0.0.1:{port}', flush=True)
-    ThreadingHTTPServer(('127.0.0.1', port), Handler).serve_forever()  # 127.0.0.1: 내 PC 에서만 접속 가능
+    url = f'http://127.0.0.1:{port}'
+
+    if already_running(port):
+        print(f'검색 서버가 이미 실행 중입니다: {url}', flush=True)
+        if open_browser:
+            webbrowser.open(url)
+        return
+    init_db()
+    try:
+        server = Server(('127.0.0.1', port), Handler)  # 127.0.0.1: 내 PC 에서만 접속 가능
+    except OSError:
+        print(f'포트 {port} 를 다른 프로그램이 사용 중입니다. 다른 포트로 실행하세요. 예) set PORT=8001', flush=True)
+        raise SystemExit(1)
+
+    print(f'MES Search Lab: {url}', flush=True)
+    print('종료하려면 이 창에서 Ctrl+C 를 누르거나 창을 닫으세요.', flush=True)
+    if open_browser:
+        webbrowser.open(url)  # 소켓은 이미 열려 있으므로 브라우저 요청은 serve_forever 시작 후 바로 처리됨
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print('서버를 종료했습니다.')
+    finally:
+        server.server_close()
+
+
+if __name__ == '__main__':
+    import sys
+    main(sys.argv[1:])

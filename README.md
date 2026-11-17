@@ -4,11 +4,19 @@
 
 ## 실행
 
+**Windows:** 프로젝트 폴더의 **`실행.bat`** 을 더블클릭하세요. 서버가 켜지고 브라우저가 자동으로 열립니다. 창을 닫으면 서버가 종료됩니다.
+
+> `static/index.html` 을 직접 더블클릭하면 디자인·검색이 동작하지 않습니다(안내 문구만 표시). 반드시 서버 주소로 접속하세요.
+
+터미널에서 직접 실행하려면:
+
 ```sh
-python3 app.py
+python app.py          # Windows (python3 은 Microsoft Store 바로가기일 수 있음)
+python3 app.py         # macOS / Linux
+python app.py --open   # 브라우저 자동 열기
 ```
 
-http://127.0.0.1:8000 접속. 포트 변경: `PORT=8001 python3 app.py`.
+http://127.0.0.1:8000 접속. 포트 변경: `PORT=8001 python3 app.py` (Windows cmd: `set PORT=8001` 후 실행). 이미 실행 중이면 새로 띄우지 않고 기존 서버 주소를 안내합니다.
 첫 실행 시 `data/mes.sqlite3`를 자동 생성하며 DB 파일은 Git에서 제외합니다. 회사 PC에서 clone 후 같은 명령으로 실행하면 샘플 DB가 다시 만들어집니다. 외부 패키지나 인터넷 연결은 필요하지 않습니다(웹폰트는 연결 실패 시 시스템 폰트 사용).
 
 ```sh
